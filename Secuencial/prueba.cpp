@@ -202,6 +202,8 @@ int main(int argc, char** argv) {
 		Asteroides[i].posx = xdist(re);
 		Asteroides[i].posy = ydist(re);
 		Asteroides[i].weight = mdist(re);
+		Asteroides[i].forcesx.resize(num_asteroides+num_planetas);
+		Asteroides[i].forcesy.resize(num_asteroides+num_planetas);
 		//cout << Asteroides[i].posx << " " << Asteroides[i].posy << " " << Asteroides[i].weight << endl;
 		fs << fixed << setprecision(3) << Asteroides[i].posx << " " << Asteroides[i].posy << " " << Asteroides[i].weight << endl;
 	}
@@ -246,6 +248,10 @@ int main(int argc, char** argv) {
 
 
 	double distancia, pendiente, angle, fuerza;
+	//auto it = Asteroides[0].forcesx.end();
+
+
+
 
 	/* Calculo de las fuerzas para cada par de elementos*/
 	for (int times = 0; times < num_iteraciones ; times++){
@@ -266,8 +272,10 @@ int main(int argc, char** argv) {
 
 		fs3 << "--- asteroids vs asteroids ---" << endl;
 
+	
 		for (unsigned int i = 0; i < Asteroides.size() ; i++){
-			//vector<asteroid>::iterator it;			
+			//vector<asteroid>::iterator it;
+						
 			for (unsigned int j = i+1; j < Asteroides.size(); j++){
 				distancia = Calculate_dist(Asteroides[i].posx, Asteroides[i].posy, Asteroides[j].posx, Asteroides[j].posy);
 				if (distancia > dmin){
@@ -277,26 +285,36 @@ int main(int argc, char** argv) {
 
 					//double fuerza = Calculate_forcesx(Asteroides[i].posx, Asteroides[i].posy, Asteroides[i].weight, Asteroides[j].posx, Asteroides[j].posy, Asteroides[j].weight );
 					fuerza = Calculate_forcesx(Asteroides[i].weight, Asteroides[j].weight, distancia);
+					
+					if (i == 0 && j == 1)
+						cout << "D:" << distancia << " " << "P:" << pendiente << " " << "A:" << angle << " " << "F:" << fuerza << endl;
 					fs3 << i << " " << j << " " << fuerza << " " << angle << endl;
-					auto it = Asteroides[i].forcesx.end();
+					/*omp_set_lock(&l);
+					it = Asteroides[i].forcesx.end();
 					Asteroides[i].forcesx.insert(it, fuerza*cos(angle));
 					it = Asteroides[j].forcesx.end();
 					Asteroides[j].forcesx.insert(it, -fuerza*cos(angle));
+					*/
 
+					Asteroides[i].forcesx[j] = fuerza*cos(angle);
+					Asteroides[j].forcesx[i] = -fuerza*cos(angle);
 					//fuerza = Calculate_forcesy(Asteroides[i].posx, Asteroides[i].posy, Asteroides[i].weight, Asteroides[j].posx, Asteroides[j].posy, Asteroides[j].weight );
 
 					//fuerza = Calculate_forcesy(Asteroides[i].weight, Asteroides[j].weight, distancia);
-
-					it = Asteroides[i].forcesy.end();
+					/*it = Asteroides[i].forcesy.end();
 					Asteroides[i].forcesy.insert(it, fuerza*sin(angle));
 					it = Asteroides[j].forcesy.end();
 					Asteroides[j].forcesy.insert(it, -fuerza*sin(angle));
+					omp_unset_lock(&l);*/
+					Asteroides[i].forcesy[j] = fuerza*sin(angle);
+					Asteroides[j].forcesy[i] = -fuerza*sin(angle);
 				}
 			}
 		}
 
 		fs3 << "--- asteroids vs planets ---" << endl;
 		
+
 		/* !!!! CALCULO DE FUERZAS DE ASTEROIDE i CON LOS PLANETAS !!!! */
 		for (unsigned int i = 0; i < Asteroides.size() ; i++){
 			for (unsigned int j = 0; j < Planetas.size(); j++){
@@ -310,14 +328,19 @@ int main(int argc, char** argv) {
 					//double fuerza = Calculate_forcesx(Asteroides[i].posx, Asteroides[i].posy, Asteroides[i].weight, Planetas[j].posx, Planetas[j].posy, Planetas[j].weight );
 
 					fs3 << i << " " << j << " " << fuerza << " " << angle  << endl;
-					auto it = Asteroides[i].forcesx.end();
-					Asteroides[i].forcesx.insert(it, fuerza*cos(angle));
+					/*it = Asteroides[i].forcesx.end();
+					Asteroides[i].forcesx.insert(it, fuerza*cos(angle));*/
+
+					Asteroides[i].forcesx[num_asteroides+j] = fuerza*cos(angle);
 
 					//fuerza = Calculate_forcesy(Asteroides[i].weight, Planetas[j].weight, distancia);
 					//fuerza = Calculate_forcesy(Asteroides[i].posx, Asteroides[i].posy, Asteroides[i].weight, Planetas[j].posx, Planetas[j].posy, Planetas[j].weight );
 
-					it = Asteroides[i].forcesy.end();
-					Asteroides[i].forcesy.insert(it, fuerza*sin(angle));
+					/*it = Asteroides[i].forcesy.end();
+					Asteroides[i].forcesy.insert(it, fuerza*sin(angle));*/
+
+					Asteroides[i].forcesy[num_asteroides+j] = fuerza*sin(angle);
+
 				//}
 			}
 		}
