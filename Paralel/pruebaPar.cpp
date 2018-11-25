@@ -50,58 +50,13 @@ double Calculate_slope (double xa, double ya, double xb, double yb){
 	return pendiente;
 }
 
-double Calculate_angle(double xa, double ya, double xb, double yb ){
-
-	return atan(Calculate_slope(xa, ya, xb, yb));
-}
-
 double Calculate_angle(double slope){
 	return atan(slope);
 }
 
-double Calculate_forcesx (double xa, double ya, double weighta, double xb, double yb, double weightb){
-
-	double distancia = Calculate_dist(xa, ya, xb, yb);
-
-	double pendiente = Calculate_slope(xa, ya, xb, yb);
-	double angle = Calculate_angle(pendiente);
-	
-
-	double force = gravity*weighta*weightb/pow(distancia, 2) * cos(angle);
-	if (force > 200)
-		force = 200;
-	return force;
-}
-
-double Calculate_forcesx (double weighta, double weightb, double distancia){
-
-	//cout << "Fuerza x con parametros: " << gravity <<" " << weighta << " " << weightb << " " << distancia << endl;
+double Calculate_forces (double weighta, double weightb, double distancia){
 
 	double force = gravity*weighta*weightb/(distancia*distancia);
-	if (force > 200)
-		return 200;
-	//cout << "Resultado: " << force << endl;
-	return force;
-}
-
-double Calculate_forcesy (double xa, double ya, double weighta, double xb, double yb, double weightb){
-
-	//cout << "############### CÁLCULO DE LAS FUERZAS ############" << endl;
-	//cout << "Parámetros: Gravity = " << gravity << "; weighta= " << weighta << "; weightb= " << weightb << "; Distancias al cuadrado= " << pow(Calculate_dist(xa, ya, xb, yb), 2) << "; Seno del angulo= " << sin(Calculate_angle(xa, ya, xb, yb)) << endl;
-	double distancia = Calculate_dist(xa, ya, xb, yb);
-
-	double pendiente = Calculate_slope(xa, ya, xb, yb);
-	double angle = Calculate_angle(pendiente);
-
-	double force = ((gravity*weighta*weightb)/(pow(distancia, 2))) * sin(angle);
-	if (force > 200)
-		force = 200;
-	return force;
-}
-
-double Calculate_forcesy (double weighta, double weightb, double distancia){
-	
-	double force = gravity*weighta*weightb/pow(distancia, 2) ;
 	if (force > 200)
 		return 200;
 	return force;
@@ -114,8 +69,6 @@ double Calculate_acceleration ( vector <double> forces, double weight ){
 	for (unsigned int i = 0; i < forces.size(); i++){
 		if (forces[i] != 0)
 			acceleration += forces[i];
-		//acceleration += forces.back();
-		//forces.pop_back();
 	}
 	return acceleration / weight;
 }
@@ -145,11 +98,6 @@ int main(int argc, char** argv) {
 		return -1;
 	}
 
-	//cout << int(argv[1][0]) << endl;
-	//cout << strlen(argv[1]) << endl;
-	//cout << typeid(strlen(argv[1])).name() << endl;
-
-
 	/* !!!! COMPROBACION DE PARAMETROS DE ENTRADA !!!! */
 	for( unsigned int i = 1; i < 5; i++){
 		if (atoi(argv[i]) > 2147483647 || atoi(argv[i]) < 0){
@@ -176,26 +124,15 @@ int main(int argc, char** argv) {
 	uniform_real_distribution<double> ydist{0.0, std::nextafter(height,std :: numeric_limits<double>::max())};
 	normal_distribution<double> mdist{mass, sdm};
 
-	//cout << num_asteroides << " " << num_iteraciones << " " << num_planetas << " " << semilla << endl; 
-
-	/*ofstream fs("init_conf.txt"); 
-	fs << num_asteroides << " " << num_iteraciones << " " << num_planetas << " " << semilla << endl;
-	fs.close();
-	*/
-
 	/* !!!! CREACION DE LOS VECTORES DE ASTEROIDES Y PLANETAS !!!! */
-	//asteroid Asteroides [num_asteroides];
 	vector <asteroid> Asteroides (num_asteroides);
 	
 
-	//planet Planetas [num_planetas];
 	vector <planet> Planetas (num_planetas);
 
 	ofstream fs("init_conf.txt"); 
 	fs << num_asteroides << " " << num_iteraciones << " " << num_planetas << " " << semilla << endl;
 
-
-	//cout << "#### ATENSION KHE BIENEN LOS ASTIROIDES XDXD ####" << endl;
 
 	/* !!!! COLOCACION DE ASTEROIDES, CON SU POSICION Y MASA !!!! */
 	for (int i = 0; i < num_asteroides; i++){
@@ -204,11 +141,8 @@ int main(int argc, char** argv) {
 		Asteroides[i].weight = mdist(re);
 		Asteroides[i].forcesx.resize(num_asteroides+num_planetas);
 		Asteroides[i].forcesy.resize(num_asteroides+num_planetas);
-		//cout << Asteroides[i].posx << " " << Asteroides[i].posy << " " << Asteroides[i].weight << endl;
 		fs << fixed << setprecision(3) << Asteroides[i].posx << " " << Asteroides[i].posy << " " << Asteroides[i].weight << endl;
 	}
-
-	//cout << "#### ATENSION KHE BIENEN LOS PLANETAS XDXD ####" << endl;
 
 	/* !!!! CCOLOCACION DE LOS PLANETAS, CON SU POSICION Y MASA !!!! */
 	for (int i = 0; i < num_planetas; i++){
@@ -237,7 +171,6 @@ int main(int argc, char** argv) {
 		}
 		
 		fs << Planetas[i].posx << " " << Planetas[i].posy << " " << Planetas[i].weight << endl;
-		//cout << Planetas[i].posx << " " << Planetas[i].posy << " " << Planetas[i].weight << endl;
 	}
 
 	fs.close();
@@ -248,9 +181,8 @@ int main(int argc, char** argv) {
 
 
 	double distancia, pendiente, angle, fuerza;
-	//auto it = Asteroides[0].forcesx.end();
 
-	omp_set_num_threads(8);
+	omp_set_num_threads(4);
 
 
 
@@ -259,23 +191,8 @@ int main(int argc, char** argv) {
 
 		/* !!!! CALCULO DE FUERZAS DE ASTEROIDE i CON LOS DEMAS ASTEROIDES !!!! */
 
-		for (unsigned int i = 0; i < Asteroides.size(); i++) {
-			for (unsigned int j = 0; j < Asteroides[i].forcesx.size(); j++){
-				Asteroides[i].forcesx[j] = 0;
-			}
-			for (unsigned int w = 0; w < Asteroides[i].forcesy.size(); w++){
-				Asteroides[i].forcesy[w] = 0;			
-			}
-		}
-
-
-		// inicializar los vectores de fuerzas a 0.
-
-		fs3 << "--- asteroids vs asteroids ---" << endl;
-
 		#pragma omp parallel for private(distancia, pendiente, angle, fuerza)
 		for (unsigned int i = 0; i < Asteroides.size() ; i++){
-			//vector<asteroid>::iterator it;
 						
 			for (unsigned int j = i+1; j < Asteroides.size(); j++){
 				distancia = Calculate_dist(Asteroides[i].posx, Asteroides[i].posy, Asteroides[j].posx, Asteroides[j].posy);
@@ -284,79 +201,42 @@ int main(int argc, char** argv) {
 					angle = Calculate_angle(pendiente);
 
 
-					//double fuerza = Calculate_forcesx(Asteroides[i].posx, Asteroides[i].posy, Asteroides[i].weight, Asteroides[j].posx, Asteroides[j].posy, Asteroides[j].weight );
-					fuerza = Calculate_forcesx(Asteroides[i].weight, Asteroides[j].weight, distancia);
-					
-					if (i == 0 && j == 1)
-						cout << "D:" << distancia << " " << "P:" << pendiente << " " << "A:" << angle << " " << "F:" << fuerza << endl;
-					fs3 << i << " " << j << " " << fuerza << " " << angle << endl;
-					/*omp_set_lock(&l);
-					it = Asteroides[i].forcesx.end();
-					Asteroides[i].forcesx.insert(it, fuerza*cos(angle));
-					it = Asteroides[j].forcesx.end();
-					Asteroides[j].forcesx.insert(it, -fuerza*cos(angle));
-					*/
-
+					fuerza = Calculate_forces(Asteroides[i].weight, Asteroides[j].weight, distancia);
 					Asteroides[i].forcesx[j] = fuerza*cos(angle);
 					Asteroides[j].forcesx[i] = -fuerza*cos(angle);
-					//fuerza = Calculate_forcesy(Asteroides[i].posx, Asteroides[i].posy, Asteroides[i].weight, Asteroides[j].posx, Asteroides[j].posy, Asteroides[j].weight );
-
-					//fuerza = Calculate_forcesy(Asteroides[i].weight, Asteroides[j].weight, distancia);
-					/*it = Asteroides[i].forcesy.end();
-					Asteroides[i].forcesy.insert(it, fuerza*sin(angle));
-					it = Asteroides[j].forcesy.end();
-					Asteroides[j].forcesy.insert(it, -fuerza*sin(angle));
-					omp_unset_lock(&l);*/
 					Asteroides[i].forcesy[j] = fuerza*sin(angle);
 					Asteroides[j].forcesy[i] = -fuerza*sin(angle);
 				}
+				else{
+
+					Asteroides[i].forcesx[j] = 0;
+					Asteroides[j].forcesx[i] = 0;
+
+					Asteroides[i].forcesy[j] = 0;
+					Asteroides[j].forcesy[i] = 0;
+				}
+				
 			}
 		}
 
-		fs3 << "--- asteroids vs planets ---" << endl;
-		
-		#pragma omp parallel for private(distancia, pendiente, angle, fuerza)
+
 		/* !!!! CALCULO DE FUERZAS DE ASTEROIDE i CON LOS PLANETAS !!!! */
+		#pragma omp parallel for private(distancia, pendiente, angle, fuerza)
 		for (unsigned int i = 0; i < Asteroides.size() ; i++){
 			for (unsigned int j = 0; j < Planetas.size(); j++){
 				distancia = Calculate_dist(Asteroides[i].posx, Asteroides[i].posy, Planetas[j].posx, Planetas[j].posy);
-				//if (distancia > 2){
 
-					pendiente = Calculate_slope(Asteroides[i].posx, Asteroides[i].posy, Planetas[j].posx, Planetas[j].posy);
-					angle = Calculate_angle(pendiente);
+				pendiente = Calculate_slope(Asteroides[i].posx, Asteroides[i].posy, Planetas[j].posx, Planetas[j].posy);
+				angle = Calculate_angle(pendiente);
 
-					fuerza = Calculate_forcesx(Asteroides[i].weight, Planetas[j].weight, distancia);
-					//double fuerza = Calculate_forcesx(Asteroides[i].posx, Asteroides[i].posy, Asteroides[i].weight, Planetas[j].posx, Planetas[j].posy, Planetas[j].weight );
+				fuerza = Calculate_forces(Asteroides[i].weight, Planetas[j].weight, distancia);
 
-					fs3 << i << " " << j << " " << fuerza << " " << angle  << endl;
-					/*it = Asteroides[i].forcesx.end();
-					Asteroides[i].forcesx.insert(it, fuerza*cos(angle));*/
+				Asteroides[i].forcesx[num_asteroides+j] = fuerza*cos(angle);
 
-					Asteroides[i].forcesx[num_asteroides+j] = fuerza*cos(angle);
+				Asteroides[i].forcesy[num_asteroides+j] = fuerza*sin(angle);
 
-					//fuerza = Calculate_forcesy(Asteroides[i].weight, Planetas[j].weight, distancia);
-					//fuerza = Calculate_forcesy(Asteroides[i].posx, Asteroides[i].posy, Asteroides[i].weight, Planetas[j].posx, Planetas[j].posy, Planetas[j].weight );
-
-					/*it = Asteroides[i].forcesy.end();
-					Asteroides[i].forcesy.insert(it, fuerza*sin(angle));*/
-
-					Asteroides[i].forcesy[num_asteroides+j] = fuerza*sin(angle);
-
-				//}
 			}
 		}
-			//cout << "#### Fuerzas de los asteroides en eje x ####" << endl;
-			//for (auto x: Asteroides[i].forcesx) {
-	        	//cout << x << "\t";
-	    	//}
-	    	//cout << endl;
-
-	    	//cout << "#### Fuerzas de los asteroides en eje y ####" << endl;
-			//for (auto x: Asteroides[i].forcesy) {
-	        	//cout << x << "\t";
-	    	//}
-			//cout << endl;
-
 		/* !!!! CALCULO DEL MOVIMIENTO !!!! */
 
 		for (unsigned int i = 0; i < Asteroides.size() ; i++){
@@ -371,60 +251,49 @@ int main(int argc, char** argv) {
 			Asteroides[i].speedy = Calculate_speed(Asteroides[i].speedy, Asteroides[i].accelerationy);
 			Asteroides[i].posy = Calculate_position(Asteroides[i].posy, Asteroides[i].speedy);
 
-			//cout << "Posicion final de Asteroide numero " << i << ": X:" << Asteroides[i].posx << " Y:" << Asteroides[i].posy << endl;
 		}
 
 		/* !!!! REBOTE CON BORDES !!!! */
 		for (unsigned int i = 0; i < Asteroides.size() ; i++){
-			if ((Asteroides[i].posx) >= height){
-				Asteroides[i].posx = height -2;
+			if ((Asteroides[i].posx) >= width){
+				Asteroides[i].posx = width -dmin;
 				Asteroides[i].speedx = -Asteroides[i].speedx;
 			}
 			if ((Asteroides[i].posx) <= 0){
-				Asteroides[i].posx = 2;
+				Asteroides[i].posx = dmin;
 				Asteroides[i].speedx = -Asteroides[i].speedx;
 			}
-			if ((Asteroides[i].posy) >= width){
-				Asteroides[i].posy = width-2;
+			if ((Asteroides[i].posy) >= height){
+				Asteroides[i].posy = height-dmin;
 				Asteroides[i].speedy = -Asteroides[i].speedy;
 			}
 			if ((Asteroides[i].posy) <= 0){
-				Asteroides[i].posy = 2;
+				Asteroides[i].posy = dmin;
 				Asteroides[i].speedy = -Asteroides[i].speedy;
 			}
 		}
 
-		for (unsigned int i = 0; i < CheckCrash.size(); i++){
-			CheckCrash[i] = 0;
-		}
+
+		bool rebote;
 
 		/* !!!! REBOTE CON ASTEROIDES !!!! */
 		for (unsigned int i = 0; i < Asteroides.size(); i++){
-			/*if (CheckCrash[i] == 0){
-				CheckCrash[i] = 1;*/
-				unsigned int aux = i;
-				for (unsigned int j = i+1; j < Asteroides.size(); j++){
-					distancia = Calculate_dist(Asteroides[i].posx, Asteroides[i].posy, Asteroides[j].posx, Asteroides[j].posy);
-					if (distancia <= dmin && CheckCrash[j] == 0){
-						//cout << "Chocan " << i <<" " << j << endl;
-						double aux_speed = Asteroides[aux].speedx;
-						Asteroides[aux].speedx = Asteroides[j].speedx;
-						Asteroides[j].speedx = aux_speed;
+			rebote = false;
+			for (unsigned int j = i+1; j < Asteroides.size() && rebote==false; j++){
+				distancia = Calculate_dist(Asteroides[i].posx, Asteroides[i].posy, Asteroides[j].posx, Asteroides[j].posy);
+				if (distancia <= dmin /*&& CheckCrash[j] == 0*/){
+					double aux_speed = Asteroides[i].speedx;
+					Asteroides[i].speedx = Asteroides[j].speedx;
+					Asteroides[j].speedx = aux_speed;
 
-						aux_speed = Asteroides[aux].speedy;
-						Asteroides[aux].speedy = Asteroides[j].speedy;
-						Asteroides[j].speedy = aux_speed;
-						
-						//CheckCrash[j] = 1;
-						//aux = j;
-
-					}
+					aux_speed = Asteroides[i].speedy;
+					Asteroides[i].speedy = Asteroides[j].speedy;
+					Asteroides[j].speedy = aux_speed;
+					rebote = true;
+					
 				}
-
-			//}
+			}
 		}
-
-		fs3 << "\n ******************** ITERATION *******************" << endl;
 	}
 
 	fs3.close();
@@ -438,6 +307,6 @@ int main(int argc, char** argv) {
 	fs2.close();
 	auto t2 = clk::now();
 	auto diff = duration_cast<microseconds>(t2-t1);
-	cout << "HA TARDADO : " << diff.count() << "MICROSEGUNDOS" << endl;
+	cout << diff.count() << endl;
 	return 0;
 }
