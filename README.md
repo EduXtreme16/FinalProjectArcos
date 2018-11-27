@@ -1,1 +1,1 @@
-FinalProjectArcos
+Final project we did for the subject "Computer Architecture". We had to check the advantajes of OpenMP and the use of threads to parallelize loops. The main program was a simulation of space, where we had a limited map and had to position planets and asteroids. For each iteration, we had to check if those asteroids crashed with others and therefore calcute their movement.
